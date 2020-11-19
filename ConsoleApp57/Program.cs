@@ -1,12 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using CustomOptionsNamespace;
+using PersonNamespace;
 
 namespace MyGenerator
 {
@@ -16,19 +11,19 @@ namespace MyGenerator
         {
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>()
             {
-                {"CustomFromConfig:CustomProperty", "value1"},
+                {"PersonFromConfig:Name", "value1"},
             }).Build();
 
-            var co = new CustomOptions();
-            configuration.Bind<CustomOptions>("CustomFromConfig", co);
-            Console.WriteLine("Custom options property using generated code: " + co.CustomProperty);
+            var person = new Person();
+            configuration.Bind("CustomFromConfig", person);
+            Console.WriteLine("Custom options property using generated code: " + person.Name);
         }
     }
 }
-namespace CustomOptionsNamespace
+namespace PersonNamespace
 {
-    public class CustomOptions
+    public class Person
     {
-        public string CustomProperty { get; set; }
+        public string Name { get; set; }
     }
 }

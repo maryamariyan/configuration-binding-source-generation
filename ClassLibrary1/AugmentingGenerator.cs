@@ -1,8 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Generators
@@ -22,8 +20,8 @@ namespace Generators
             // we can retrieve the populated instance via the context
             MySyntaxReceiver syntaxReceiver = (MySyntaxReceiver)context.SyntaxReceiver;
             // get the recorded user class
-            ClassDeclarationSyntax customOptions = syntaxReceiver.ClassToAugment;
-            if (customOptions is null)
+            ClassDeclarationSyntax person = syntaxReceiver.ClassToAugment;
+            if (person is null)
             {
                 // if we didn't find the user class, there is nothing to do
                 return;
@@ -36,27 +34,28 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace CustomOptionsNamespace
+namespace PersonNamespace
 {{
-    public static class CustomOptionsConfigurationExensions
+    public static class PersonConfigurationExensions
     {{
         public static void Bind<TOptions>(this IConfiguration configuration, string key, TOptions options)
-            where TOptions : {customOptions.Identifier}
+            where TOptions : {person.Identifier}
         {{
             configuration.GetSection(key).Bind(options);
         }}
 
-        public static void Bind<TOptions>(this IConfiguration configuration, TOptions options)
-            where TOptions : {customOptions.Identifier}
+        public static void Bind<TOptions>(this IConfiguration configuration, TOptions options, Action<BinderOptions> configureOptions)
+            where TOptions : {person.Identifier}
         {{
             // Generated code
-            options.CustomProperty = ""uncomment the following!"";//configuration[nameof(options.CustomProperty)];
+            options.Name = ""uncomment the following!"";//configuration[nameof(options.CustomProperty)];
+            // TODO: use the syntax tree, get type and loop through properties and set them.
         }}
     }}
 }}
 
 ", Encoding.UTF8);
-            context.AddSource("CustomOptions.Generated.cs", sourceText);
+            context.AddSource("Person.Generated.cs", sourceText);
         }
 
         class MySyntaxReceiver : ISyntaxReceiver
@@ -67,7 +66,9 @@ namespace CustomOptionsNamespace
             {
                 // Business logic to decide what we're interested in goes here
                 if (syntaxNode is ClassDeclarationSyntax cds &&
-                    cds.Identifier.ValueText == "CustomOptions")
+                    // TODO: use syntax tree to filter Bind calls
+                    // to find types for ValueText rather than hard coding,
+                    cds.Identifier.ValueText == "Person")
                 {
                     ClassToAugment = cds;
                 }
