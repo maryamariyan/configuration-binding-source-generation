@@ -35,6 +35,7 @@ namespace ConsoleApp57
         }
     }
 }
+
 namespace PersonNamespace
 {
     public class Person

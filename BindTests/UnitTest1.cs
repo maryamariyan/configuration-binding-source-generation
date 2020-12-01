@@ -531,9 +531,6 @@ namespace Microsoft.Extensions.Configuration.Binder.Test
 
             var exception = Assert.Throws<InvalidOperationException>(
                 () => config.Bind(new TestOptions()));
-            //Assert.Equal(
-            //    SR.Format(SR.Error_CannotActivateAbstractOrInterface, typeof(ISomeInterface)),
-            //    exception.Message);
         }
 
         private interface ISomeInterface
