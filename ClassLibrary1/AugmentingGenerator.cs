@@ -12,7 +12,6 @@ namespace Generators
     [Generator]
     public class AugmentingGenerator : ISourceGenerator
     {
-        public bool UseGeneric { get; set; } = false;
         public Dictionary<string, Type> TypesToBind { get; private set; }
 
         public void Initialize(GeneratorInitializationContext context)
@@ -32,34 +31,15 @@ namespace Generators
             var metadataLoadContext = new MetadataLoadContext(context.Compilation);
             var assembly = metadataLoadContext.MainAssembly;
 
-            if (UseGeneric)
+            foreach ((MemberAccessExpressionSyntax _, ArgumentSyntax ArgSyntax) bindOverload in syntaxReceiver.BindOverloads)
             {
-                foreach (var (memberAccess, handlerType) in syntaxReceiver.GenericBindCalls)
-                {
-                    var semanticModel = context.Compilation.GetSemanticModel(memberAccess.Expression.SyntaxTree);
-                    var typeInfo = semanticModel.GetTypeInfo(memberAccess.Expression);
+                SemanticModel compilationSemanticModel = context.Compilation.GetSemanticModel(bindOverload.ArgSyntax.SyntaxTree);
 
-                    semanticModel = context.Compilation.GetSemanticModel(handlerType.SyntaxTree);
-                    typeInfo = semanticModel.GetTypeInfo(handlerType);
+                ITypeSymbol typeSymbol = compilationSemanticModel.GetTypeInfo(bindOverload.ArgSyntax.Expression).Type;
+                Type type = new TypeWrapper(typeSymbol, metadataLoadContext);
 
-                    var type = assembly.GetType(typeInfo.Type.ToDisplayString());
-
-                    if (!(TypesToBind ??= new Dictionary<string, Type>()).ContainsKey(type.FullName))
-                        TypesToBind[type.FullName] = type;
-                }
-            }
-            else
-            {
-                foreach ((MemberAccessExpressionSyntax _, ArgumentSyntax ArgSyntax) bindOverload in syntaxReceiver.NonGenericBindCalls)
-                {
-                    SemanticModel compilationSemanticModel = context.Compilation.GetSemanticModel(bindOverload.ArgSyntax.SyntaxTree);
-
-                    ITypeSymbol typeSymbol = compilationSemanticModel.GetTypeInfo(bindOverload.ArgSyntax.Expression).Type;
-                    Type type = new TypeWrapper(typeSymbol, metadataLoadContext);
-
-                    if (!(TypesToBind ??= new Dictionary<string, Type>()).ContainsKey(type.FullName))
-                        TypesToBind[type.FullName] = type;
-                }
+                if (!(TypesToBind ??= new Dictionary<string, Type>()).ContainsKey(type.FullName))
+                    TypesToBind[type.FullName] = type;
             }
 
             if (TypesToBind == null)
@@ -101,14 +81,13 @@ namespace {type.Namespace}
 
         public static void Bind(this IConfiguration configuration, {type.Name} instance, Action<BinderOptions> configureOptions)
         {{
-            Console.WriteLine(""third overload"");
+            Console.WriteLine(""third overload. Logic is simplified, TODO: complete."");
             instance.ShowInfo();");
 
                 foreach (PropertyInfo property in type.GetProperties())
                 {
                     sb.AppendLine(@$"
             instance.{property.Name} = configuration.GetValue<{property.PropertyType.FullName}>(""{property.Name}"");");
-
                 }
 
                 sb.Append(@"
@@ -123,9 +102,7 @@ namespace {type.Namespace}
 
         class MySyntaxReceiver : ISyntaxReceiver
         {
-            public List<(MemberAccessExpressionSyntax, SeparatedSyntaxList<ArgumentSyntax>)> BindOverloads { get; } = new();
-            public List<(MemberAccessExpressionSyntax, ArgumentSyntax)> NonGenericBindCalls { get; } = new();
-            public List<(MemberAccessExpressionSyntax, TypeSyntax)> GenericBindCalls { get; } = new();
+            public List<(MemberAccessExpressionSyntax, ArgumentSyntax)> BindOverloads { get; } = new();
             public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
             {
                 if (syntaxNode is MemberAccessExpressionSyntax 
@@ -137,18 +114,18 @@ namespace {type.Namespace}
                     // TODO cleanup condition
                     if (arguments.Count == 1)
                     {
-                        NonGenericBindCalls.Add((mapBindCall, arguments[0]));
+                        BindOverloads.Add((mapBindCall, arguments[0]));
                     }
                     else if (arguments.Count == 2)
                     {
                         if (arguments[1].Expression is SimpleLambdaExpressionSyntax)
                         {
-                            // the instance is the first arg for this overload
-                            NonGenericBindCalls.Add((mapBindCall, arguments[0]));
+                            BindOverloads.Add((mapBindCall, arguments[0]));
                         }
                         else
                         {
-                            NonGenericBindCalls.Add((mapBindCall, arguments[1]));
+                            // Generating Bind overloads for the second argument type
+                            BindOverloads.Add((mapBindCall, arguments[1]));
                         }
                     }
                 }
